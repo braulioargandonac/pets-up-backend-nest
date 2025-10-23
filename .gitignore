@@ -1,6 +1,7 @@
 # Nestjs specific
 project/dist
 project/node_modules
+project/generated
 /build
 /tmp
 

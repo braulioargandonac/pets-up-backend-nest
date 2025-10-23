@@ -1,0 +1,424 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  name             String
+  email            String    @unique
+  password         String
+  phone            String?
+  address          String?
+  communeId        Int
+  shortDescription String?
+  description      String?
+  reportCount      Int       @default(0)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
+
+  commune          Commune           @relation(fields: [communeId], references: [id])
+  pets             Pet[]
+  vets             Vet[]
+  lostPets         LostPet[]
+  reports          Report[]
+  userRoles        UserRole[]
+  userRewards      UserReward[]
+  image            Image[]
+  lostPetSightings LostPetSighting[]
+
+  @@index([isActive])
+}
+
+model Region {
+  id        Int       @id @default(autoincrement())
+  name      String
+  createdAt DateTime  @default(now())
+  commune   Commune[]
+
+  @@index([name])
+}
+
+model Commune {
+  id            Int            @id @default(autoincrement())
+  name          String
+  regionId      Int
+  createdAt     DateTime       @default(now())
+  region        Region         @relation(fields: [regionId], references: [id])
+  users         User[]
+  lostPet       LostPet[]
+  vets          Vet[]
+  communityPets CommunityPet[]
+
+  @@index([name])
+}
+
+model Role {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime?        @updatedAt
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+}
+
+model Permission {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           Int      @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  roleId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+}
+
+model Reward {
+  id                   Int                  @id @default(autoincrement())
+  name                 String
+  description          String?
+  createdAt            DateTime             @default(now())
+  userRewards          UserReward[]
+  petsRewards          PetReward[]
+  communityPetsRewards CommunityPetReward[]
+}
+
+model UserReward {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  rewardId  Int
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  reward Reward @relation(fields: [rewardId], references: [id])
+
+  @@unique([userId, rewardId])
+}
+
+model PetReward {
+  id        Int      @id @default(autoincrement())
+  petId     Int
+  rewardId  Int
+  createdAt DateTime @default(now())
+
+  pet    Pet    @relation(fields: [petId], references: [id])
+  reward Reward @relation(fields: [rewardId], references: [id])
+
+  @@unique([petId, rewardId])
+}
+
+model CommunityPetReward {
+  id             Int      @id @default(autoincrement())
+  communityPetId Int
+  rewardId       Int
+  createdAt      DateTime @default(now())
+
+  communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
+  reward       Reward       @relation(fields: [rewardId], references: [id])
+
+  @@unique([communityPetId, rewardId])
+}
+
+model Pet {
+  id               Int       @id @default(autoincrement())
+  name             String
+  description      String?
+  shortDescription String?
+  birthDate        DateTime?
+  gender           String?
+  reportCount      Int       @default(0)
+  visitsCount      Int       @default(0)
+  likes            Int       @default(0)
+  ownerId          Int?
+  sizeId           Int?
+  energyLevelId    Int?
+  homeTypeId       Int?
+  conditionId      Int?
+  statusId         Int?
+  specieId         Int?
+  breedId          Int?
+  hairTypeId       Int?
+  isActive         Boolean   @default(true)
+  isPetFriendly    Boolean   @default(true)
+  isKidFriendly    Boolean   @default(true)
+  isSterilized     Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
+
+  owner         User?          @relation(fields: [ownerId], references: [id])
+  size          PetSize?       @relation(fields: [sizeId], references: [id])
+  energyLevel   EnergyLevel?   @relation(fields: [energyLevelId], references: [id])
+  homeType      HomeType?      @relation(fields: [homeTypeId], references: [id])
+  condition     PetCondition?  @relation(fields: [conditionId], references: [id])
+  status        PetStatus?     @relation(fields: [statusId], references: [id])
+  specie        PetSpecie?     @relation(fields: [specieId], references: [id])
+  breed         PetBreed?      @relation(fields: [breedId], references: [id])
+  hairType      PetHairType?   @relation(fields: [hairTypeId], references: [id])
+  images        Image[]
+  lostPet       LostPet?
+  communityPets CommunityPet[]
+  report        Report[]
+  reward        PetReward[]
+
+  @@index([name])
+  @@index([statusId])
+  @@index([isActive])
+  @@index([specieId, breedId])
+  @@index([statusId, isActive, specieId])
+}
+
+model PetSize {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model EnergyLevel {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model HomeType {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model PetCondition {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model PetStatus {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model PetSpecie {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model PetBreed {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model PetHairType {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  petId     Int?
+  userId    Int?
+  vetId     Int?
+  imageUrl  String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  pet  Pet?  @relation(fields: [petId], references: [id])
+  vet  Vet?  @relation(fields: [vetId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
+}
+
+model LostPet {
+  id           Int       @id @default(autoincrement())
+  petId        Int       @unique
+  reportedById Int
+  communeId    Int
+  latitude     Float
+  longitude    Float
+  foundAt      DateTime?
+  lostAt       DateTime
+  description  String?
+  reportCount  Int       @default(0)
+  visitsCount  Int       @default(0)
+  isResolved   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  pet        Pet               @relation(fields: [petId], references: [id])
+  reportedBy User              @relation(fields: [reportedById], references: [id])
+  commune    Commune           @relation(fields: [communeId], references: [id])
+  sightings  LostPetSighting[]
+
+  @@index([isResolved])
+  @@index([communeId, isResolved])
+  @@index([latitude, longitude])
+  @@index([lostAt])
+}
+
+model LostPetSighting {
+  id           Int      @id @default(autoincrement())
+  lostPetId    Int
+  sightedById  Int
+  description  String?
+  latitude     Float
+  longitude    Float
+  sightingDate DateTime @default(now())
+  imageUrl     String
+
+  lostPet   LostPet @relation(fields: [lostPetId], references: [id])
+  sightedBy User    @relation(fields: [sightedById], references: [id])
+
+  @@index([sightingDate])
+  @@index([latitude, longitude])
+}
+
+model Report {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  petId          Int?
+  communityPetId Int?
+  typeId         Int
+  title          String
+  description    String?
+  imageUrl       String?
+  createdAt      DateTime @default(now())
+  isResolved     Boolean  @default(false)
+
+  user         User          @relation(fields: [userId], references: [id])
+  pet          Pet?          @relation(fields: [petId], references: [id])
+  communityPet CommunityPet? @relation(fields: [communityPetId], references: [id])
+  type         ReportType    @relation(fields: [typeId], references: [id])
+
+  @@index([isResolved])
+  @@index([typeId, isResolved])
+}
+
+model ReportType {
+  id     Int      @id @default(autoincrement())
+  name   String   @unique
+  report Report[]
+}
+
+model CommunityPet {
+  id          Int      @id @default(autoincrement())
+  petId       Int      @unique
+  communeId   Int
+  address     String
+  latitude    Float
+  longitude   Float
+  description String?
+  createdAt   DateTime @default(now())
+
+  pet     Pet                  @relation(fields: [petId], references: [id])
+  commune Commune              @relation(fields: [communeId], references: [id])
+  reward  CommunityPetReward[]
+  report  Report[]
+
+  @@index([latitude, longitude])
+}
+
+model Vet {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  name         String
+  phone        String?
+  email        String?
+  address      String
+  latitude     Float
+  longitude    Float
+  communeId    Int?
+  isVerified   Boolean  @default(false)
+  howToGoCount Int
+  visitsCount  Int
+  description  String?
+  createdAt    DateTime @default(now())
+
+  commune         Commune?         @relation(fields: [communeId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  vetServices     VetService[]
+  images          Image[]
+  vetOpeningTimes VetOpeningTime[]
+
+  @@index([name])
+  @@index([isVerified])
+  @@index([communeId, isVerified])
+  @@index([latitude, longitude])
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  vetServices VetService[]
+}
+
+model VetService {
+  id        Int      @id @default(autoincrement())
+  vetId     Int
+  serviceId Int
+  createdAt DateTime @default(now())
+
+  vet     Vet     @relation(fields: [vetId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@unique([vetId, serviceId])
+}
+
+model DayOfWeek {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  createdAt       DateTime         @default(now())
+  vetOpeningTimes VetOpeningTime[]
+}
+
+model VetOpeningTime {
+  id          Int      @id @default(autoincrement())
+  vetId       Int
+  dayOfWeekId Int
+  startTime   String
+  endTime     String
+  createdAt   DateTime @default(now())
+
+  vet       Vet       @relation(fields: [vetId], references: [id])
+  dayOfWeek DayOfWeek @relation(fields: [dayOfWeekId], references: [id])
+
+  @@index([vetId])
+}
