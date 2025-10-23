@@ -5,6 +5,8 @@ project/generated
 /build
 /tmp
 
+project/public/uploads/*
+
 # Logs
 logs
 *.log
