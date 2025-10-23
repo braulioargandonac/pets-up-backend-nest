@@ -31,7 +31,6 @@ export class PrismaService
     await this.$connect();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async onApplicationShutdown(_signal?: string) {
     await this.$disconnect();
   }
