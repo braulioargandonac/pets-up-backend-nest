@@ -29,6 +29,18 @@ export class CreatePetDto {
   @IsOptional()
   gender?: string;
 
+  @IsString()
+  @IsOptional()
+  color?: string;
+
+  @IsString()
+  @IsOptional()
+  distinguishingMarks?: string;
+
+  @IsInt()
+  @IsNotEmpty()
+  communeId: number;
+
   @IsInt()
   @IsOptional()
   sizeId?: number;

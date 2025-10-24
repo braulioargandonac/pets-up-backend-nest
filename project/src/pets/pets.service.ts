@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { Prisma } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class PetsService {
@@ -26,6 +27,7 @@ export class PetsService {
         specieId,
         breedId,
         hairTypeId,
+        communeId,
         ...primitiveData
       } = createPetDto;
 
@@ -35,6 +37,7 @@ export class PetsService {
           owner: {
             connect: { id: ownerId },
           },
+          ...(communeId && { commune: { connect: { id: communeId } } }),
           ...(sizeId && { size: { connect: { id: sizeId } } }),
           ...(energyLevelId && {
             energyLevel: { connect: { id: energyLevelId } },
@@ -84,30 +87,50 @@ export class PetsService {
   }
 
   /**
-   * Devuelve una lista de mascotas para el feed principal.
-   * Incluye la imagen principal y datos básicos.
+   * Devuelve una lista paginada de mascotas para el feed principal.
    */
-  async findAll() {
-    return this.prisma.pet.findMany({
-      where: {
-        statusId: 1,
-      },
-      include: {
-        images: {
-          take: 1,
-          orderBy: { createdAt: 'asc' },
+  async findAll(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 10 } = paginationQuery;
+    const skip = (page - 1) * limit;
+    const [pets, total] = await this.prisma.$transaction([
+      this.prisma.pet.findMany({
+        skip: skip,
+        take: limit,
+        where: {
+          statusId: 1,
         },
-        specie: true,
-        breed: true,
+        include: {
+          images: {
+            take: 1,
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.pet.count({
+        where: {
+          statusId: 1,
+        },
+      }),
+    ]);
+
+    return {
+      data: pets,
+      meta: {
+        totalItems: total,
+        itemCount: pets.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    };
   }
 
   /**
    * Devuelve el perfil completo de UNA mascota.
+   * Optimizado para usar catálogos en el frontend.
    */
   async findOne(id: number) {
     const pet = await this.prisma.pet.findUnique({
@@ -122,21 +145,12 @@ export class PetsService {
             shortDescription: true,
           },
         },
-        size: true,
-        energyLevel: true,
-        homeType: true,
-        condition: true,
-        status: true,
-        specie: true,
-        breed: true,
-        hairType: true,
       },
     });
 
     if (!pet) {
       throw new NotFoundException(`Mascota con ID ${id} no encontrada`);
     }
-
     return pet;
   }
 }

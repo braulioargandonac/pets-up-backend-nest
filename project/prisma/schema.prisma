@@ -55,6 +55,7 @@ model Commune {
   lostPet       LostPet[]
   vets          Vet[]
   communityPets CommunityPet[]
+  pets          Pet[]
 
   @@index([name])
 }
@@ -148,30 +149,33 @@ model CommunityPetReward {
 }
 
 model Pet {
-  id               Int       @id @default(autoincrement())
-  name             String
-  description      String?
-  shortDescription String?
-  birthDate        DateTime?
-  gender           String?
-  reportCount      Int       @default(0)
-  visitsCount      Int       @default(0)
-  likes            Int       @default(0)
-  ownerId          Int?
-  sizeId           Int?
-  energyLevelId    Int?
-  homeTypeId       Int?
-  conditionId      Int?
-  statusId         Int?
-  specieId         Int?
-  breedId          Int?
-  hairTypeId       Int?
-  isActive         Boolean   @default(true)
-  isPetFriendly    Boolean   @default(true)
-  isKidFriendly    Boolean   @default(true)
-  isSterilized     Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime? @updatedAt
+  id                  Int       @id @default(autoincrement())
+  name                String
+  description         String?
+  shortDescription    String?
+  birthDate           DateTime?
+  gender              String?
+  color               String?
+  distinguishingMarks String?
+  reportCount         Int       @default(0)
+  visitsCount         Int       @default(0)
+  likes               Int       @default(0)
+  ownerId             Int?
+  sizeId              Int?
+  energyLevelId       Int?
+  homeTypeId          Int?
+  conditionId         Int?
+  statusId            Int?
+  specieId            Int?
+  breedId             Int?
+  hairTypeId          Int?
+  communeId           Int?
+  isActive            Boolean   @default(true)
+  isPetFriendly       Boolean   @default(true)
+  isKidFriendly       Boolean   @default(true)
+  isSterilized        Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime? @updatedAt
 
   owner         User?          @relation(fields: [ownerId], references: [id])
   size          PetSize?       @relation(fields: [sizeId], references: [id])
@@ -182,6 +186,7 @@ model Pet {
   specie        PetSpecie?     @relation(fields: [specieId], references: [id])
   breed         PetBreed?      @relation(fields: [breedId], references: [id])
   hairType      PetHairType?   @relation(fields: [hairTypeId], references: [id])
+  commune       Commune?       @relation(fields: [communeId], references: [id])
   images        Image[]
   lostPet       LostPet?
   communityPets CommunityPet[]

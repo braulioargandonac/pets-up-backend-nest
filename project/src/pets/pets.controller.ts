@@ -12,6 +12,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { PetsService } from './pets.service';
 import { CreatePetDto } from './dto/create-pet.dto';
@@ -22,6 +23,7 @@ import { extname } from 'path';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 
@@ -80,13 +82,12 @@ export class PetsController {
   }
 
   /**
-   * Endpoint público para listar mascotas
-   * GET /pets
+   * Endpoint público para listar mascotas (para el "Tinder")
+   * GET /pets?page=1&limit=10
    */
   @Get()
-  // @UseGuards(AuthGuard('jwt'))
-  findAll() {
-    return this.petsService.findAll();
+  findAll(@Query() paginationQuery: PaginationQueryDto) {
+    return this.petsService.findAll(paginationQuery);
   }
 
   /**
@@ -94,7 +95,6 @@ export class PetsController {
    * GET /pets/:id
    */
   @Get(':id')
-  // @UseGuards(AuthGuard('jwt'))
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.petsService.findOne(id);
   }
