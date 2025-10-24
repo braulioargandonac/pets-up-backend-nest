@@ -24,6 +24,8 @@ import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { LostPetsService } from 'src/lost-pets/lost-pets.service';
+import { ReportLostPetDto } from 'src/lost-pets/dto/report-lost-pet.dto';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 
@@ -37,6 +39,7 @@ export class PetsController {
   constructor(
     private readonly petsService: PetsService,
     private readonly configService: ConfigService,
+    private readonly lostPetsService: LostPetsService,
   ) {}
 
   @Post()
@@ -97,5 +100,19 @@ export class PetsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.petsService.findOne(id);
+  }
+
+  /**
+   * Endpoint para reportar una mascota (Pet) como perdida (LostPet).
+   * POST /api/v1/pets/:id/report-lost
+   */
+  @Post(':id/report-lost')
+  reportLostPet(
+    @Param('id', ParseIntPipe) petId: number,
+    @Req() req: AuthenticatedRequest,
+    @Body() reportLostPetDto: ReportLostPetDto,
+  ) {
+    const userId = req.user.id;
+    return this.lostPetsService.reportLostPet(petId, userId, reportLostPetDto);
   }
 }

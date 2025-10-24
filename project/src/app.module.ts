@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { PetsModule } from './pets/pets.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { UsersModule } from './users/users.module';
+import { LostPetsModule } from './lost-pets/lost-pets.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     PetsModule,
+    LostPetsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
