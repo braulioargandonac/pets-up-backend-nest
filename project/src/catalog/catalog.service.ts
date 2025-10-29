@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LogType } from '@prisma/client';
 
 @Injectable()
 export class CatalogService {
@@ -43,5 +44,9 @@ export class CatalogService {
 
   getCommunes() {
     return this.prisma.commune.findMany({ orderBy: { id: 'asc' } });
+  }
+
+  getLogTypes() {
+    return Object.values(LogType);
   }
 }

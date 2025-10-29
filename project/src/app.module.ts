@@ -8,6 +8,7 @@ import { PetsModule } from './pets/pets.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { UsersModule } from './users/users.module';
 import { LostPetsModule } from './lost-pets/lost-pets.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { LostPetsModule } from './lost-pets/lost-pets.module';
     }),
     PrismaModule,
     AuthModule,
+    CatalogModule,
     UsersModule,
     PetsModule,
     LostPetsModule,

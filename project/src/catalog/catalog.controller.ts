@@ -56,4 +56,9 @@ export class CatalogController {
   getCommunes() {
     return this.catalogService.getCommunes();
   }
+
+  @Get('log-types')
+  getLogTypes() {
+    return this.catalogService.getLogTypes();
+  }
 }
