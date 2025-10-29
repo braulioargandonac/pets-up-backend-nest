@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePetDto } from './dto/create-pet.dto';
@@ -13,6 +14,7 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 
 @Injectable()
 export class PetsService {
+  private readonly MAX_PHOTOS_PER_PET = 10;
   constructor(private prisma: PrismaService) {}
 
   async create(
@@ -300,6 +302,198 @@ export class PetsService {
     } catch (error) {
       console.error('Error al restaurar la mascota:', error);
       throw new InternalServerErrorException('Error al restaurar la mascota.');
+    }
+  }
+
+  /**
+   * Desactiva una foto de una mascota.
+   * Valida que el usuario sea el dueño y que no sea la última foto.
+   */
+  async deactivatePhoto(userId: number, petId: number, photoId: number) {
+    const petImage = await this.prisma.petImage.findFirst({
+      where: {
+        id: photoId,
+        petId: petId,
+      },
+      include: {
+        pet: true,
+      },
+    });
+
+    if (!petImage) {
+      throw new NotFoundException(
+        `Foto con ID ${photoId} no encontrada para la mascota ${petId}.`,
+      );
+    }
+
+    if (petImage.pet.ownerId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar esta mascota.',
+      );
+    }
+
+    const activePhotoCount = await this.prisma.petImage.count({
+      where: {
+        petId: petId,
+        isActive: true,
+      },
+    });
+
+    if (activePhotoCount <= 1) {
+      throw new ConflictException(
+        'No puedes eliminar la última foto de la mascota.',
+      );
+    }
+
+    try {
+      await this.prisma.petImage.update({
+        where: { id: photoId },
+        data: { isActive: false },
+      });
+    } catch (error) {
+      console.error('Error al desactivar la foto:', error);
+      throw new InternalServerErrorException('Error al desactivar la foto.');
+    }
+
+    return;
+  }
+
+  /**
+   * Añade nuevas fotos a una mascota, respetando el límite total.
+   */
+  async addPhotos(userId: number, petId: number, fileUrls: string[]) {
+    const pet = await this.prisma.pet.findFirst({
+      where: {
+        id: petId,
+        isActive: true,
+      },
+    });
+
+    if (!pet) {
+      throw new NotFoundException(
+        `Mascota activa con ID ${petId} no encontrada.`,
+      );
+    }
+
+    if (pet.ownerId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar esta mascota.',
+      );
+    }
+
+    const currentActivePhotoCount = await this.prisma.petImage.count({
+      where: {
+        petId: petId,
+        isActive: true,
+      },
+    });
+
+    if (currentActivePhotoCount + fileUrls.length > this.MAX_PHOTOS_PER_PET) {
+      throw new BadRequestException(
+        `No puedes subir ${fileUrls.length} fotos. Ya tienes ${currentActivePhotoCount} y el límite es ${this.MAX_PHOTOS_PER_PET}.`,
+      );
+    }
+
+    const lastOrder = await this.prisma.petImage.aggregate({
+      _max: { order: true },
+      where: { petId: petId },
+    });
+    const nextOrder = (lastOrder._max.order ?? -1) + 1;
+
+    const imagesData = fileUrls.map((url, index) => ({
+      petId: petId,
+      imageUrl: url,
+      order: nextOrder + index,
+      isActive: true,
+    }));
+
+    try {
+      await this.prisma.petImage.createMany({
+        data: imagesData,
+      });
+
+      const createdImages = await this.prisma.petImage.findMany({
+        where: {
+          petId: petId,
+          imageUrl: { in: fileUrls },
+        },
+      });
+      return createdImages;
+    } catch (error) {
+      console.error('Error al añadir fotos:', error);
+      throw new InternalServerErrorException('Error al guardar las fotos.');
+    }
+  }
+
+  /**
+   * Reordena las fotos activas de una mascota.
+   */
+  async reorderPhotos(
+    userId: number,
+    petId: number,
+    photoIdsInOrder: number[],
+  ) {
+    const pet = await this.prisma.pet.findFirst({
+      where: { id: petId, isActive: true },
+      include: {
+        images: {
+          where: { isActive: true },
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!pet) {
+      throw new NotFoundException(
+        `Mascota activa con ID ${petId} no encontrada.`,
+      );
+    }
+
+    if (pet.ownerId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar esta mascota.',
+      );
+    }
+
+    const currentActivePhotoIds = new Set(pet.images.map((img) => img.id));
+    const inputPhotoIds = new Set(photoIdsInOrder);
+
+    if (currentActivePhotoIds.size !== inputPhotoIds.size) {
+      throw new BadRequestException(
+        `La cantidad de IDs (${inputPhotoIds.size}) no coincide con las fotos activas (${currentActivePhotoIds.size}).`,
+      );
+    }
+
+    for (const id of inputPhotoIds) {
+      if (!currentActivePhotoIds.has(id)) {
+        throw new BadRequestException(
+          `El ID de foto ${id} no pertenece a esta mascota o no está activa.`,
+        );
+      }
+    }
+
+    try {
+      const updatePromises = photoIdsInOrder.map((photoId, index) =>
+        this.prisma.petImage.update({
+          where: { id: photoId },
+          data: { order: index },
+        }),
+      );
+
+      await this.prisma.$transaction(updatePromises);
+
+      return this.prisma.petImage.findMany({
+        where: {
+          petId: petId,
+          isActive: true,
+        },
+        orderBy: {
+          order: 'asc',
+        },
+      });
+    } catch (error) {
+      console.error('Error al reordenar las fotos:', error);
+      throw new InternalServerErrorException('Error al reordenar las fotos.');
     }
   }
 }

@@ -17,6 +17,8 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PetsService } from './pets.service';
 import { CreatePetDto } from './dto/create-pet.dto';
@@ -31,6 +33,7 @@ import { LostPetsService } from 'src/lost-pets/lost-pets.service';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { ReportLostPetDto } from 'src/lost-pets/dto/report-lost-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
+import { ReorderPhotosDto } from './dto/reorder-photos.dto';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 
@@ -165,5 +168,94 @@ export class PetsController {
   ) {
     const userId = req.user.id;
     return this.petsService.restore(petId, userId);
+  }
+
+  /**
+   * Endpoint protegido para desactivar una foto de una mascota.
+   * DELETE /api/v1/pets/:petId/photos/:photoId
+   */
+  @Delete(':petId/photos/:photoId')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deactivatePhoto(
+    @Req() req: AuthenticatedRequest,
+    @Param('petId', ParseIntPipe) petId: number,
+    @Param('photoId', ParseIntPipe) photoId: number,
+  ) {
+    const userId = req.user.id;
+    return this.petsService.deactivatePhoto(userId, petId, photoId);
+  }
+
+  /**
+   * Endpoint protegido para añadir más fotos a una mascota existente.
+   * POST /api/v1/pets/:petId/photos
+   */
+  @Post(':petId/photos')
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      storage: diskStorage({
+        destination: './public/uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          cb(null, `pet-image-${uniqueSuffix}${ext}`);
+        },
+      }),
+    }),
+  )
+  addPhotos(
+    @Req() req: AuthenticatedRequest,
+    @Param('petId', ParseIntPipe) petId: number,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
+          new FileTypeValidator({
+            fileType: /image\/(jpeg|png|webp)/,
+            skipMagicNumbersValidation: true,
+          }),
+        ],
+        fileIsRequired: true,
+      }),
+    )
+    files: Array<Express.Multer.File>,
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('Debes subir al menos una foto.');
+    }
+
+    const userId = req.user.id;
+    const appUrl = this.configService.get<string>('APP_URL');
+
+    if (!appUrl) {
+      throw new InternalServerErrorException('APP_URL no está configurada.');
+    }
+
+    const fileUrls = files.map(
+      (file) => `${appUrl}/${file.path.replace('public/', '')}`,
+    );
+
+    return this.petsService.addPhotos(userId, petId, fileUrls);
+  }
+
+  /**
+   * Endpoint protegido para reordenar las fotos de una mascota.
+   * PATCH /api/v1/pets/:petId/photos/order
+   */
+  @Patch(':petId/photos/order')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  reorderPhotos(
+    @Req() req: AuthenticatedRequest,
+    @Param('petId', ParseIntPipe) petId: number,
+    @Body() reorderPhotosDto: ReorderPhotosDto,
+  ) {
+    const userId = req.user.id;
+    return this.petsService.reorderPhotos(
+      userId,
+      petId,
+      reorderPhotosDto.photoIds,
+    );
   }
 }
