@@ -76,6 +76,9 @@ export class LostPetsService {
         take: limit,
         where: {
           isResolved: false,
+          pet: {
+            isActive: true,
+          },
         },
         include: {
           commune: true,
@@ -93,7 +96,12 @@ export class LostPetsService {
         },
       }),
       this.prisma.lostPet.count({
-        where: { isResolved: false },
+        where: {
+          isResolved: false,
+          pet: {
+            isActive: true,
+          },
+        },
       }),
     ]);
 
@@ -113,10 +121,13 @@ export class LostPetsService {
    * Devuelve el detalle completo de un reporte de mascota perdida.
    */
   async findOne(id: number) {
-    const lostPetReport = await this.prisma.lostPet.findUnique({
+    const lostPetReport = await this.prisma.lostPet.findFirst({
       where: {
         id: id,
         isResolved: false,
+        pet: {
+          isActive: true,
+        },
       },
       include: {
         commune: true,

@@ -1,6 +1,8 @@
 import {
   Controller,
   Post,
+  Patch,
+  Delete,
   Body,
   UseGuards,
   Req,
@@ -13,6 +15,8 @@ import {
   Param,
   ParseIntPipe,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { PetsService } from './pets.service';
 import { CreatePetDto } from './dto/create-pet.dto';
@@ -23,9 +27,10 @@ import { extname } from 'path';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { LostPetsService } from 'src/lost-pets/lost-pets.service';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { ReportLostPetDto } from 'src/lost-pets/dto/report-lost-pet.dto';
+import { UpdatePetDto } from './dto/update-pet.dto';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 
@@ -44,7 +49,7 @@ export class PetsController {
 
   @Post()
   @UseInterceptors(
-    FilesInterceptor('files', 5, {
+    FilesInterceptor('files', 10, {
       storage: diskStorage({
         destination: './public/uploads',
         filename: (req, file, cb) => {
@@ -114,5 +119,51 @@ export class PetsController {
   ) {
     const userId = req.user.id;
     return this.lostPetsService.reportLostPet(petId, userId, reportLostPetDto);
+  }
+
+  /**
+   * Endpoint protegido para actualizar una mascota.
+   * PATCH /api/v1/pets/:id
+   */
+  @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  update(
+    @Param('id', ParseIntPipe) petId: number,
+    @Req() req: AuthenticatedRequest,
+    @Body() updatePetDto: UpdatePetDto,
+  ) {
+    const userId = req.user.id;
+    return this.petsService.update(petId, userId, updatePetDto);
+  }
+
+  /**
+   * Endpoint protegido para eliminar una mascota.
+   * DELETE /api/v1/pets/:id
+   */
+  @Delete(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(
+    @Param('id', ParseIntPipe) petId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user.id;
+    return this.petsService.remove(petId, userId);
+  }
+
+  /**
+   * Endpoint protegido para restaurar (reactivar) una mascota.
+   * PATCH /api/v1/pets/:id/restore
+   */
+  @Patch(':id/restore')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  restore(
+    @Param('id', ParseIntPipe) petId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user.id;
+    return this.petsService.restore(petId, userId);
   }
 }

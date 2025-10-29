@@ -23,17 +23,34 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime? @updatedAt
 
-  commune          Commune           @relation(fields: [communeId], references: [id])
-  pets             Pet[]
-  vets             Vet[]
-  lostPets         LostPet[]
-  reports          Report[]
-  userRoles        UserRole[]
-  userRewards      UserReward[]
-  image            Image[]
-  lostPetSightings LostPetSighting[]
+  commune              Commune               @relation(fields: [communeId], references: [id])
+  pets                 Pet[]
+  vets                 Vet[]
+  lostPets             LostPet[]
+  reports              Report[]
+  userRoles            UserRole[]
+  userRewards          UserReward[]
+  lostPetSightings     LostPetSighting[]
+  communityPetImages   CommunityPetImage[]
+  communityPetComments CommunityPetComment[]
+  communityPetLogs     CommunityPetLog[]
+  communityPetTasks    CommunityPetTask[]    @relation("TasksCreatedByUser")
+  communityPetAssigned CommunityPetTask[]    @relation("TasksAssignedToUser")
+  images               UserImage[]
 
   @@index([isActive])
+}
+
+model UserImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  caption   String?
+  userId    Int
+  isProfile Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Region {
@@ -187,9 +204,8 @@ model Pet {
   breed         PetBreed?      @relation(fields: [breedId], references: [id])
   hairType      PetHairType?   @relation(fields: [hairTypeId], references: [id])
   commune       Commune?       @relation(fields: [communeId], references: [id])
-  images        Image[]
+  images        PetImage[]
   lostPet       LostPet?
-  communityPets CommunityPet[]
   report        Report[]
   reward        PetReward[]
 
@@ -198,6 +214,18 @@ model Pet {
   @@index([isActive])
   @@index([specieId, breedId])
   @@index([statusId, isActive, specieId])
+}
+
+model PetImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  caption   String?
+  petId     Int
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id])
 }
 
 model PetSize {
@@ -236,17 +264,19 @@ model PetStatus {
 }
 
 model PetSpecie {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  pets      Pet[]
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  createdAt     DateTime       @default(now())
+  pets          Pet[]
+  communityPets CommunityPet[]
 }
 
 model PetBreed {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  pets      Pet[]
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  createdAt     DateTime       @default(now())
+  pets          Pet[]
+  communityPets CommunityPet[]
 }
 
 model PetHairType {
@@ -254,20 +284,6 @@ model PetHairType {
   name      String   @unique
   createdAt DateTime @default(now())
   pets      Pet[]
-}
-
-model Image {
-  id        Int      @id @default(autoincrement())
-  petId     Int?
-  userId    Int?
-  vetId     Int?
-  imageUrl  String
-  caption   String?
-  createdAt DateTime @default(now())
-
-  pet  Pet?  @relation(fields: [petId], references: [id])
-  vet  Vet?  @relation(fields: [vetId], references: [id])
-  user User? @relation(fields: [userId], references: [id])
 }
 
 model LostPet {
@@ -341,21 +357,94 @@ model ReportType {
 }
 
 model CommunityPet {
-  id          Int      @id @default(autoincrement())
-  petId       Int      @unique
-  communeId   Int
-  address     String
-  latitude    Float
-  longitude   Float
-  description String?
-  createdAt   DateTime @default(now())
+  id                  Int      @id @default(autoincrement())
+  name                String
+  description         String?
+  color               String?
+  distinguishingMarks String?
+  temperament         String?
+  careInstructions    String?
+  communeId           Int
+  address             String
+  latitude            Float
+  longitude           Float
+  specieId            Int
+  breedId             Int?
+  createdAt           DateTime @default(now())
 
-  pet     Pet                  @relation(fields: [petId], references: [id])
-  commune Commune              @relation(fields: [communeId], references: [id])
-  reward  CommunityPetReward[]
-  report  Report[]
+  commune  Commune               @relation(fields: [communeId], references: [id])
+  specie   PetSpecie             @relation(fields: [specieId], references: [id])
+  breed    PetBreed?             @relation(fields: [breedId], references: [id])
+  images   CommunityPetImage[]
+  comments CommunityPetComment[]
+  logs     CommunityPetLog[]
+  tasks    CommunityPetTask[]
+  reward   CommunityPetReward[]
+  report   Report[]
 
   @@index([latitude, longitude])
+}
+
+model CommunityPetImage {
+  id             Int      @id @default(autoincrement())
+  imageUrl       String
+  caption        String?
+  communityPetId Int
+  uploadedById   Int
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
+}
+
+model CommunityPetComment {
+  id             Int      @id @default(autoincrement())
+  communityPetId Int
+  authorId       Int
+  content        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
+  author       User         @relation(fields: [authorId], references: [id])
+}
+
+enum LogType {
+  HEALTH
+  VET_VISIT
+  FOOD
+  BEHAVIOR
+  EVENT
+  OTHER
+}
+
+model CommunityPetLog {
+  id             Int      @id @default(autoincrement())
+  communityPetId Int
+  authorId       Int
+  content        String
+  logType        LogType
+  createdAt      DateTime @default(now())
+
+  communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
+  author       User         @relation(fields: [authorId], references: [id])
+}
+
+model CommunityPetTask {
+  id             Int       @id @default(autoincrement())
+  communityPetId Int
+  authorId       Int
+  assigneeId     Int?
+  title          String
+  description    String?
+  isCompleted    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
+  author       User         @relation(fields: [authorId], references: [id], name: "TasksCreatedByUser")
+  assignee     User?        @relation(fields: [assigneeId], references: [id], name: "TasksAssignedToUser")
 }
 
 model Vet {
@@ -377,13 +466,25 @@ model Vet {
   commune         Commune?         @relation(fields: [communeId], references: [id])
   user            User             @relation(fields: [userId], references: [id])
   vetServices     VetService[]
-  images          Image[]
+  images          VetImage[]
   vetOpeningTimes VetOpeningTime[]
 
   @@index([name])
   @@index([isVerified])
   @@index([communeId, isVerified])
   @@index([latitude, longitude])
+}
+
+model VetImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  caption   String?
+  vetId     Int
+  isLogo    Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  vet Vet @relation(fields: [vetId], references: [id])
 }
 
 model Service {
