@@ -32,6 +32,8 @@ model User {
   userRewards          UserReward[]
   lostPetSightings     LostPetSighting[]
   communityPetImages   CommunityPetImage[]
+  communityPetPosts  CommunityPetPost[]
+  communityPostLikes CommunityPetPostLike[]
   communityPetComments CommunityPetComment[]
   communityPetLogs     CommunityPetLog[]
   communityPetTasks    CommunityPetTask[]    @relation("TasksCreatedByUser")
@@ -356,13 +358,25 @@ model ReportType {
   report Report[]
 }
 
+enum Temperament {
+  JUGUETON
+  TIMIDO
+  TRANQUILO
+  REACTIVO_PERROS
+  REACTIVO_HUMANOS
+  BUENO_CON_NINOS
+  BUENO_CON_GATOS
+  GUARDIAN
+  OTRO
+}
+
 model CommunityPet {
   id                  Int      @id @default(autoincrement())
   name                String
   description         String?
   color               String?
   distinguishingMarks String?
-  temperament         String?
+  temperamentTags     Temperament[]
   careInstructions    String?
   communeId           Int
   address             String
@@ -376,7 +390,7 @@ model CommunityPet {
   specie   PetSpecie             @relation(fields: [specieId], references: [id])
   breed    PetBreed?             @relation(fields: [breedId], references: [id])
   images   CommunityPetImage[]
-  comments CommunityPetComment[]
+  posts    CommunityPetPost[]
   logs     CommunityPetLog[]
   tasks    CommunityPetTask[]
   reward   CommunityPetReward[]
@@ -396,18 +410,6 @@ model CommunityPetImage {
 
   communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
   uploadedBy   User         @relation(fields: [uploadedById], references: [id])
-}
-
-model CommunityPetComment {
-  id             Int      @id @default(autoincrement())
-  communityPetId Int
-  authorId       Int
-  content        String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
-  author       User         @relation(fields: [authorId], references: [id])
 }
 
 enum LogType {
@@ -445,6 +447,47 @@ model CommunityPetTask {
   communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
   author       User         @relation(fields: [authorId], references: [id], name: "TasksCreatedByUser")
   assignee     User?        @relation(fields: [assigneeId], references: [id], name: "TasksAssignedToUser")
+}
+
+model CommunityPetPost {
+  id             Int      @id @default(autoincrement())
+  communityPetId Int
+  authorId       Int
+  content        String
+  imageUrl       String?
+  createdAt      DateTime @default(now())
+
+  communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
+  author       User         @relation(fields: [authorId], references: [id])
+
+  likes    CommunityPetPostLike[]
+  comments CommunityPetComment[]
+
+  @@index([communityPetId, createdAt])
+}
+
+model CommunityPetPostLike {
+  id     Int @id @default(autoincrement())
+  postId Int
+  userId Int
+
+  post CommunityPetPost @relation(fields: [postId], references: [id])
+  user User             @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+}
+
+model CommunityPetComment {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+
+  post   CommunityPetPost @relation(fields: [postId], references: [id])
+  author User             @relation(fields: [authorId], references: [id])
+
+  @@index([postId, createdAt])
 }
 
 model Vet {

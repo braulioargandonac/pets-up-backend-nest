@@ -9,6 +9,11 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { UsersModule } from './users/users.module';
 import { LostPetsModule } from './lost-pets/lost-pets.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { CommunityPetsModule } from './community-pets/community-pets.module';
+import { CommunityPetLogsModule } from './community-pet-logs/community-pet-logs.module';
+import { CommunityPetTasksModule } from './community-pet-tasks/community-pet-tasks.module';
+import { CommunityPetPostsModule } from './community-pet-posts/community-pet-posts.module';
+import { CommunityPetCommentsModule } from './community-pet-comments/community-pet-comments.module';
 
 @Module({
   imports: [
@@ -26,6 +31,11 @@ import { CatalogModule } from './catalog/catalog.module';
     UsersModule,
     PetsModule,
     LostPetsModule,
+    CommunityPetsModule,
+    CommunityPetLogsModule,
+    CommunityPetTasksModule,
+    CommunityPetPostsModule,
+    CommunityPetCommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

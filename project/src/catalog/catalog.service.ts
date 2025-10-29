@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LogType } from '@prisma/client';
+import { LogType, Temperament } from '@prisma/client';
 
 @Injectable()
 export class CatalogService {
@@ -48,5 +48,9 @@ export class CatalogService {
 
   getLogTypes() {
     return Object.values(LogType);
+  }
+
+  getTemperaments() {
+    return Object.values(Temperament);
   }
 }

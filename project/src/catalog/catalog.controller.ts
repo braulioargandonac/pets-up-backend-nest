@@ -61,4 +61,9 @@ export class CatalogController {
   getLogTypes() {
     return this.catalogService.getLogTypes();
   }
+
+  @Get('temperaments')
+  getTemperaments() {
+    return this.catalogService.getTemperaments();
+  }
 }
