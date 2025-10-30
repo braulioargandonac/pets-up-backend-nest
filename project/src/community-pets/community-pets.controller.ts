@@ -26,6 +26,7 @@ import { Request } from 'express';
 import { User } from '@prisma/client';
 import { CreateCommunityPetDto } from './dto/create-community-pet.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { CommunityPetPostsService } from 'src/community-pet-posts/community-pet-posts.service';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 interface AuthenticatedRequest extends Request {
@@ -38,6 +39,7 @@ export class CommunityPetsController {
   constructor(
     private readonly communityPetsService: CommunityPetsService,
     private readonly configService: ConfigService,
+    private readonly postsService: CommunityPetPostsService,
   ) {}
 
   @Post()
@@ -104,5 +106,17 @@ export class CommunityPetsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.communityPetsService.findOne(id);
+  }
+
+  /**
+   * Endpoint público para obtener los posts del "Muro" (paginado).
+   * GET /api/v1/community-pets/:id/posts?page=1&limit=10
+   */
+  @Get(':id/posts')
+  findAllPosts(
+    @Param('id', ParseIntPipe) communityPetId: number,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.postsService.findAllForPet(communityPetId, paginationQuery);
   }
 }

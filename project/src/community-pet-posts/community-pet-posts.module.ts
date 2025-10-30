@@ -4,6 +4,7 @@ import { CommunityPetPostsService } from './community-pet-posts.service';
 
 @Module({
   controllers: [CommunityPetPostsController],
-  providers: [CommunityPetPostsService]
+  providers: [CommunityPetPostsService],
+  exports: [CommunityPetPostsService],
 })
 export class CommunityPetPostsModule {}
