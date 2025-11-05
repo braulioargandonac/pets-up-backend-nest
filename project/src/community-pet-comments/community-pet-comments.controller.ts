@@ -18,14 +18,13 @@ import { User } from '@prisma/client';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
-// Definimos el tipo de usuario autenticado
 type AuthenticatedUser = Omit<User, 'password'>;
 interface AuthenticatedRequest extends Request {
   user: AuthenticatedUser;
 }
 
-@Controller('comments') // <-- RUTA BASE CAMBIADA
-@UseGuards(AuthGuard('jwt')) // <-- Protegemos todo el controlador
+@Controller('comments')
+@UseGuards(AuthGuard('jwt'))
 export class CommunityPetCommentsController {
   constructor(private readonly commentsService: CommunityPetCommentsService) {}
 
