@@ -4,6 +4,7 @@ import { CommunityPetCommentsService } from './community-pet-comments.service';
 
 @Module({
   controllers: [CommunityPetCommentsController],
-  providers: [CommunityPetCommentsService]
+  providers: [CommunityPetCommentsService],
+  exports: [CommunityPetCommentsService],
 })
 export class CommunityPetCommentsModule {}

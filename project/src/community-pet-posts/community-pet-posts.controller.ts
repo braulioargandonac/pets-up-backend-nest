@@ -16,6 +16,8 @@ import {
   HttpStatus,
   Delete,
   Patch,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { CommunityPetPostsService } from './community-pet-posts.service';
 import { CreateCommunityPetPostDto } from './dto/create-community-pet-post.dto';
@@ -27,6 +29,8 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { User } from '@prisma/client';
 import { UpdateCommunityPetPostDto } from './dto/update-community-pet-post.dto';
+import { CommunityPetCommentsService } from 'src/community-pet-comments/community-pet-comments.service';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 interface AuthenticatedRequest extends Request {
@@ -39,6 +43,7 @@ export class CommunityPetPostsController {
   constructor(
     private readonly postsService: CommunityPetPostsService,
     private readonly configService: ConfigService,
+    private readonly commentsService: CommunityPetCommentsService,
   ) {}
 
   @Post()
@@ -208,5 +213,18 @@ export class CommunityPetPostsController {
   ) {
     const userId = req.user.id;
     return this.postsService.removePost(userId, postId);
+  }
+
+  /**
+   * Endpoint público para obtener los comentarios de un post (paginado).
+   * GET /api/v1/posts/:id/comments?page=1&limit=10
+   */
+  @Get(':id/comments')
+  @UseGuards()
+  findAllCommentsForPost(
+    @Param('id', ParseIntPipe) postId: number,
+    @Query() paginationQuery: PaginationQueryDto,
+  ) {
+    return this.commentsService.findAllForPost(postId, paginationQuery);
   }
 }
