@@ -23,7 +23,7 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime? @updatedAt
 
-  commune              Commune               @relation(fields: [communeId], references: [id])
+  commune              Commune                @relation(fields: [communeId], references: [id])
   pets                 Pet[]
   vets                 Vet[]
   lostPets             LostPet[]
@@ -32,13 +32,14 @@ model User {
   userRewards          UserReward[]
   lostPetSightings     LostPetSighting[]
   communityPetImages   CommunityPetImage[]
-  communityPetPosts  CommunityPetPost[]
-  communityPostLikes CommunityPetPostLike[]
+  communityPetPosts    CommunityPetPost[]
+  communityPostLikes   CommunityPetPostLike[]
   communityPetComments CommunityPetComment[]
   communityPetLogs     CommunityPetLog[]
-  communityPetTasks    CommunityPetTask[]    @relation("TasksCreatedByUser")
-  communityPetAssigned CommunityPetTask[]    @relation("TasksAssignedToUser")
+  communityPetTasks    CommunityPetTask[]     @relation("TasksCreatedByUser")
+  communityPetAssigned CommunityPetTask[]     @relation("TasksAssignedToUser")
   images               UserImage[]
+  communityPetsCreated CommunityPet[]         @relation("CommunityPetsCreatedByUser")
 
   @@index([isActive])
 }
@@ -196,20 +197,20 @@ model Pet {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime? @updatedAt
 
-  owner         User?          @relation(fields: [ownerId], references: [id])
-  size          PetSize?       @relation(fields: [sizeId], references: [id])
-  energyLevel   EnergyLevel?   @relation(fields: [energyLevelId], references: [id])
-  homeType      HomeType?      @relation(fields: [homeTypeId], references: [id])
-  condition     PetCondition?  @relation(fields: [conditionId], references: [id])
-  status        PetStatus?     @relation(fields: [statusId], references: [id])
-  specie        PetSpecie?     @relation(fields: [specieId], references: [id])
-  breed         PetBreed?      @relation(fields: [breedId], references: [id])
-  hairType      PetHairType?   @relation(fields: [hairTypeId], references: [id])
-  commune       Commune?       @relation(fields: [communeId], references: [id])
-  images        PetImage[]
-  lostPet       LostPet?
-  report        Report[]
-  reward        PetReward[]
+  owner       User?         @relation(fields: [ownerId], references: [id])
+  size        PetSize?      @relation(fields: [sizeId], references: [id])
+  energyLevel EnergyLevel?  @relation(fields: [energyLevelId], references: [id])
+  homeType    HomeType?     @relation(fields: [homeTypeId], references: [id])
+  condition   PetCondition? @relation(fields: [conditionId], references: [id])
+  status      PetStatus?    @relation(fields: [statusId], references: [id])
+  specie      PetSpecie?    @relation(fields: [specieId], references: [id])
+  breed       PetBreed?     @relation(fields: [breedId], references: [id])
+  hairType    PetHairType?  @relation(fields: [hairTypeId], references: [id])
+  commune     Commune?      @relation(fields: [communeId], references: [id])
+  images      PetImage[]
+  lostPet     LostPet?
+  report      Report[]
+  reward      PetReward[]
 
   @@index([name])
   @@index([statusId])
@@ -371,7 +372,7 @@ enum Temperament {
 }
 
 model CommunityPet {
-  id                  Int      @id @default(autoincrement())
+  id                  Int           @id @default(autoincrement())
   name                String
   description         String?
   color               String?
@@ -384,17 +385,20 @@ model CommunityPet {
   longitude           Float
   specieId            Int
   breedId             Int?
-  createdAt           DateTime @default(now())
+  createdById         Int
+  isActive            Boolean       @default(true)
+  createdAt           DateTime      @default(now())
 
-  commune  Commune               @relation(fields: [communeId], references: [id])
-  specie   PetSpecie             @relation(fields: [specieId], references: [id])
-  breed    PetBreed?             @relation(fields: [breedId], references: [id])
-  images   CommunityPetImage[]
-  posts    CommunityPetPost[]
-  logs     CommunityPetLog[]
-  tasks    CommunityPetTask[]
-  reward   CommunityPetReward[]
-  report   Report[]
+  commune   Commune              @relation(fields: [communeId], references: [id])
+  specie    PetSpecie            @relation(fields: [specieId], references: [id])
+  breed     PetBreed?            @relation(fields: [breedId], references: [id])
+  createdBy User                 @relation("CommunityPetsCreatedByUser", fields: [createdById], references: [id]) // <-- 3. AÑADE LA RELACIÓN
+  images    CommunityPetImage[]
+  posts     CommunityPetPost[]
+  logs      CommunityPetLog[]
+  tasks     CommunityPetTask[]
+  reward    CommunityPetReward[]
+  report    Report[]
 
   @@index([latitude, longitude])
 }
@@ -406,6 +410,7 @@ model CommunityPetImage {
   communityPetId Int
   uploadedById   Int
   order          Int      @default(0)
+  isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
 
   communityPet CommunityPet @relation(fields: [communityPetId], references: [id])
