@@ -14,6 +14,7 @@ import { CommunityPetLogsModule } from './community-pet-logs/community-pet-logs.
 import { CommunityPetTasksModule } from './community-pet-tasks/community-pet-tasks.module';
 import { CommunityPetPostsModule } from './community-pet-posts/community-pet-posts.module';
 import { CommunityPetCommentsModule } from './community-pet-comments/community-pet-comments.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { CommunityPetCommentsModule } from './community-pet-comments/community-p
     CommunityPetTasksModule,
     CommunityPetPostsModule,
     CommunityPetCommentsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

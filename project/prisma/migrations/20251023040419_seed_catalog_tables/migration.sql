@@ -129,10 +129,12 @@ SELECT setval(pg_get_serial_sequence('"PetHairType"', 'id'), COALESCE(max(id), 1
 
 -- Insertar ReportType
 INSERT INTO "ReportType" (id, name) VALUES
-(1, 'Abuso / Maltrato'),
-(2, 'Contenido inapropiado'),
-(3, 'Estafa / Fraude'),
-(4, 'Otro');
+(1, 'SPAM'),
+(2, 'CONTENIDO_INAPROPIADO'),
+(3, 'ACOSO'),
+(4, 'INFORMACION_FALSA'),
+(5, 'FRAUDE_O_ESTAFA'),
+(6, 'OTRO');
 SELECT setval(pg_get_serial_sequence('"ReportType"', 'id'), COALESCE(max(id), 1), max(id) IS NOT null) FROM "ReportType";
 
 -- Insertar DayOfWeek

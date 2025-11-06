@@ -27,7 +27,6 @@ model User {
   pets                 Pet[]
   vets                 Vet[]
   lostPets             LostPet[]
-  reports              Report[]
   userRoles            UserRole[]
   userRewards          UserReward[]
   lostPetSightings     LostPetSighting[]
@@ -40,6 +39,8 @@ model User {
   communityPetAssigned CommunityPetTask[]     @relation("TasksAssignedToUser")
   images               UserImage[]
   communityPetsCreated CommunityPet[]         @relation("CommunityPetsCreatedByUser")
+  reportsMade          Report[]               @relation("ReportsMadeByUser")
+  reportsAgainst       Report[]               @relation("ReportsAgainstUser")
 
   @@index([isActive])
 }
@@ -333,24 +334,33 @@ model LostPetSighting {
 }
 
 model Report {
-  id             Int      @id @default(autoincrement())
-  userId         Int
-  petId          Int?
-  communityPetId Int?
-  typeId         Int
-  title          String
-  description    String?
-  imageUrl       String?
-  createdAt      DateTime @default(now())
-  isResolved     Boolean  @default(false)
+  id          Int      @id @default(autoincrement())
+  reporterId  Int
+  typeId      Int
+  description String
+  isResolved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
-  user         User          @relation(fields: [userId], references: [id])
-  pet          Pet?          @relation(fields: [petId], references: [id])
-  communityPet CommunityPet? @relation(fields: [communityPetId], references: [id])
-  type         ReportType    @relation(fields: [typeId], references: [id])
+  reportedPetId          Int?
+  reportedCommunityPetId Int?
+  reportedPostId         Int?
+  reportedCommentId      Int?
+  reportedUserId         Int?
+
+  reporter             User                 @relation("ReportsMadeByUser", fields: [reporterId], references: [id])
+  type                 ReportType           @relation(fields: [typeId], references: [id])
+  reportedPet          Pet?                 @relation(fields: [reportedPetId], references: [id])
+  reportedCommunityPet CommunityPet?        @relation(fields: [reportedCommunityPetId], references: [id])
+  reportedPost         CommunityPetPost?    @relation(fields: [reportedPostId], references: [id])
+  reportedComment      CommunityPetComment? @relation(fields: [reportedCommentId], references: [id])
+  reportedUser         User?                @relation("ReportsAgainstUser", fields: [reportedUserId], references: [id])
 
   @@index([isResolved])
-  @@index([typeId, isResolved])
+  @@index([reportedPetId])
+  @@index([reportedCommunityPetId])
+  @@index([reportedPostId])
+  @@index([reportedCommentId])
+  @@index([reportedUserId])
 }
 
 model ReportType {
@@ -467,6 +477,7 @@ model CommunityPetPost {
 
   likes    CommunityPetPostLike[]
   comments CommunityPetComment[]
+  reports  Report[]
 
   @@index([communityPetId, createdAt])
 }
@@ -489,8 +500,9 @@ model CommunityPetComment {
   content   String
   createdAt DateTime @default(now())
 
-  post   CommunityPetPost @relation(fields: [postId], references: [id])
-  author User             @relation(fields: [authorId], references: [id])
+  post    CommunityPetPost @relation(fields: [postId], references: [id])
+  author  User             @relation(fields: [authorId], references: [id])
+  reports Report[]
 
   @@index([postId, createdAt])
 }
