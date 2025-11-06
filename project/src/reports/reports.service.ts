@@ -2,10 +2,12 @@ import {
   Injectable,
   InternalServerErrorException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { Prisma } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class ReportsService {
@@ -51,6 +53,77 @@ export class ReportsService {
         }
       }
       throw new InternalServerErrorException('Error al crear el reporte.');
+    }
+  }
+
+  /**
+   * Devuelve una lista paginada de todos los reportes.
+   * (Solo para Admins)
+   */
+  async findAllReports(paginationQuery: PaginationQueryDto) {
+    const { page = 1, limit = 10 } = paginationQuery;
+    const skip = (page - 1) * limit;
+
+    const [reports, total] = await this.prisma.$transaction([
+      this.prisma.report.findMany({
+        skip: skip,
+        take: limit,
+        where: {
+          isResolved: false,
+        },
+        include: {
+          reporter: { select: { id: true, name: true, email: true } },
+          type: true,
+          reportedPet: true,
+          reportedCommunityPet: true,
+          reportedPost: true,
+          reportedComment: true,
+          reportedUser: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.report.count({
+        where: { isResolved: false },
+      }),
+    ]);
+
+    return {
+      data: reports,
+      meta: {
+        totalItems: total,
+        itemCount: reports.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
+  }
+
+  /**
+   * Marca un reporte como "resuelto".
+   * (Solo para Admins)
+   */
+  async resolveReport(reportId: number) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+    if (!report) {
+      throw new NotFoundException(`Reporte con ID ${reportId} no encontrado.`);
+    }
+
+    if (report.isResolved) {
+      return report;
+    }
+
+    try {
+      return await this.prisma.report.update({
+        where: { id: reportId },
+        data: { isResolved: true },
+      });
+    } catch (_error) {
+      throw new InternalServerErrorException('Error al resolver el reporte.');
     }
   }
 }
