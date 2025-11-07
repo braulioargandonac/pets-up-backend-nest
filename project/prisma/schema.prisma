@@ -1,11 +1,13 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [postgis]
 }
 
 model User {
@@ -402,7 +404,7 @@ model CommunityPet {
   commune   Commune              @relation(fields: [communeId], references: [id])
   specie    PetSpecie            @relation(fields: [specieId], references: [id])
   breed     PetBreed?            @relation(fields: [breedId], references: [id])
-  createdBy User                 @relation("CommunityPetsCreatedByUser", fields: [createdById], references: [id]) // <-- 3. AÑADE LA RELACIÓN
+  createdBy User                 @relation("CommunityPetsCreatedByUser", fields: [createdById], references: [id])
   images    CommunityPetImage[]
   posts     CommunityPetPost[]
   logs      CommunityPetLog[]
@@ -514,14 +516,15 @@ model Vet {
   phone        String?
   email        String?
   address      String
-  latitude     Float
-  longitude    Float
   communeId    Int?
   isVerified   Boolean  @default(false)
   howToGoCount Int
   visitsCount  Int
   description  String?
   createdAt    DateTime @default(now())
+
+  location Unsupported("geography(Point, 4326)")?
+  googleMapsUrl String?
 
   commune         Commune?         @relation(fields: [communeId], references: [id])
   user            User             @relation(fields: [userId], references: [id])
@@ -532,7 +535,7 @@ model Vet {
   @@index([name])
   @@index([isVerified])
   @@index([communeId, isVerified])
-  @@index([latitude, longitude])
+  @@index([location], type: Gist)
 }
 
 model VetImage {
