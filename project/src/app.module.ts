@@ -15,6 +15,7 @@ import { CommunityPetTasksModule } from './community-pet-tasks/community-pet-tas
 import { CommunityPetPostsModule } from './community-pet-posts/community-pet-posts.module';
 import { CommunityPetCommentsModule } from './community-pet-comments/community-pet-comments.module';
 import { ReportsModule } from './reports/reports.module';
+import { VetsModule } from './vets/vets.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ReportsModule } from './reports/reports.module';
     CommunityPetPostsModule,
     CommunityPetCommentsModule,
     ReportsModule,
+    VetsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
