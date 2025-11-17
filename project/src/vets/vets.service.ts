@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -9,10 +10,35 @@ import { CreateVetDto } from './dto/create-vet.dto';
 import { Prisma } from '@prisma/client';
 import { FindVetsQueryDto } from './dto/find-vets-query.dto';
 import { UpdateVetDto } from './dto/update-vet.dto';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
+import { CreateOpeningTimeDto } from './dto/create-opening-time.dto';
+
+const PUBLIC_ROOT = '/usr/src/app/public';
 
 @Injectable()
 export class VetsService {
+  private readonly MAX_PHOTOS_PER_VET = 5;
+
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Helper privado para verificar propiedad.
+   */
+  private async checkVetOwnership(userId: number, vetId: number) {
+    const vet = await this.prisma.vet.findUnique({
+      where: { id: vetId },
+    });
+    if (!vet) {
+      throw new NotFoundException(`Veterinaria con ID ${vetId} no encontrada.`);
+    }
+    if (vet.userId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar esta veterinaria.',
+      );
+    }
+    return vet;
+  }
 
   /**
    * Devuelve una lista de veterinarias filtrada por proximidad,
@@ -87,6 +113,7 @@ export class VetsService {
             ${userLocation},
             ${radiusInMeters}
           )
+          AND "v"."isActive" = true
 
           ${serviceWhere}
           ${openNowWhere}
@@ -109,7 +136,7 @@ export class VetsService {
     const vet = await this.prisma.vet.findFirst({
       where: {
         id: id,
-        isVerified: true,
+        isActive: true,
       },
       include: {
         commune: true,
@@ -169,11 +196,11 @@ export class VetsService {
           INSERT INTO "Vet" (
             "name", "address", "phone", "email", "description", "googleMapsUrl",
             "communeId", "userId", "location",
-            "isVerified", "howToGoCount", "visitsCount"
+            "isVerified", "isActive", "howToGoCount", "visitsCount"
           ) VALUES (
             ${name}, ${address}, ${phone}, ${email}, ${description}, ${googleMapsUrl},
             ${communeId}, ${userId}, ${locationQuery},
-            false, 0, 0
+            false, true, 0, 0
           )
           RETURNING id
         `;
@@ -287,6 +314,306 @@ export class VetsService {
       throw new InternalServerErrorException(
         'Error al actualizar la veterinaria.',
       );
+    }
+  }
+
+  /**
+   * Desactiva una veterinaria.
+   * Solo el dueño (VET_OWNER) puede hacerlo.
+   */
+  async removeVet(userId: number, vetId: number) {
+    const vet = await this.prisma.vet.findUnique({
+      where: { id: vetId },
+    });
+    if (!vet) {
+      throw new NotFoundException(`Veterinaria con ID ${vetId} no encontrada.`);
+    }
+    if (vet.userId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para eliminar esta veterinaria.',
+      );
+    }
+
+    try {
+      await this.prisma.vet.update({
+        where: { id: vetId },
+        data: {
+          isActive: false,
+        },
+      });
+    } catch (_error) {
+      throw new InternalServerErrorException(
+        'Error al desactivar la veterinaria.',
+      );
+    }
+
+    return;
+  }
+
+  /**
+   * Añade nuevas fotos a una veterinaria, respetando el límite.
+   * Solo el dueño puede hacerlo.
+   */
+  async addPhotos(userId: number, vetId: number, fileUrls: string[]) {
+    const vet = await this.prisma.vet.findFirst({
+      where: { id: vetId, isActive: true },
+    });
+
+    if (!vet) {
+      throw new NotFoundException(
+        `Veterinaria activa con ID ${vetId} no encontrada.`,
+      );
+    }
+    if (vet.userId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar esta veterinaria.',
+      );
+    }
+
+    const currentActivePhotoCount = await this.prisma.vetImage.count({
+      where: { vetId: vetId },
+    });
+
+    if (currentActivePhotoCount + fileUrls.length > this.MAX_PHOTOS_PER_VET) {
+      throw new BadRequestException(
+        `No puedes subir ${fileUrls.length} fotos. Ya tienes ${currentActivePhotoCount} y el límite es ${this.MAX_PHOTOS_PER_VET}.`,
+      );
+    }
+
+    const lastOrder = await this.prisma.vetImage.aggregate({
+      _max: { order: true },
+      where: { vetId: vetId },
+    });
+    const nextOrder = (lastOrder._max.order ?? -1) + 1;
+
+    const logoExists = await this.prisma.vetImage.findFirst({
+      where: {
+        vetId: vetId,
+        isLogo: true,
+      },
+    });
+
+    const imagesData = fileUrls.map((url, index) => ({
+      vetId: vetId,
+      imageUrl: url,
+      order: nextOrder + index,
+      isLogo: !logoExists && index === 0,
+    }));
+
+    try {
+      await this.prisma.vetImage.createMany({
+        data: imagesData,
+      });
+      return { message: `${fileUrls.length} fotos añadidas.` };
+    } catch (_error) {
+      throw new InternalServerErrorException('Error al guardar las fotos.');
+    }
+  }
+
+  /**
+   * Elimina una foto de una veterinaria.
+   * Si la foto era el logo, reasigna el logo a la siguiente foto.
+   * Solo el dueño puede hacerlo.
+   */
+  async removePhoto(userId: number, vetId: number, photoId: number) {
+    const vetImage = await this.prisma.vetImage.findFirst({
+      where: {
+        id: photoId,
+        vetId: vetId,
+      },
+      include: {
+        vet: true,
+      },
+    });
+
+    if (!vetImage) {
+      throw new NotFoundException(
+        `Foto con ID ${photoId} no encontrada para la veterinaria ${vetId}.`,
+      );
+    }
+
+    if (vetImage.vet.userId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar esta veterinaria.',
+      );
+    }
+
+    const oldImageUrl = vetImage.imageUrl;
+    const wasLogo = vetImage.isLogo;
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.vetImage.delete({
+          where: { id: photoId },
+        });
+        if (wasLogo) {
+          const newLogo = await tx.vetImage.findFirst({
+            where: { vetId: vetId },
+            orderBy: { order: 'asc' },
+          });
+
+          if (newLogo) {
+            await tx.vetImage.update({
+              where: { id: newLogo.id },
+              data: { isLogo: true },
+            });
+          }
+        }
+      });
+
+      if (oldImageUrl) {
+        const oldFileName = oldImageUrl.split('/').pop();
+        if (oldFileName) {
+          const oldPath = join(PUBLIC_ROOT, 'uploads/vets', oldFileName);
+          await unlink(oldPath);
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error al eliminar la foto:', error.message);
+      }
+      throw new InternalServerErrorException('Error al eliminar la foto.');
+    }
+
+    return; // 204 No Content
+  }
+
+  /**
+   * Reordena las fotos de una veterinaria y asigna el nuevo logo.
+   * Solo el dueño puede hacerlo.
+   */
+  async reorderPhotos(
+    userId: number,
+    vetId: number,
+    photoIdsInOrder: number[],
+  ) {
+    const vet = await this.prisma.vet.findFirst({
+      where: { id: vetId, isActive: true },
+      include: {
+        images: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!vet) {
+      throw new NotFoundException(
+        `Veterinaria activa con ID ${vetId} no encontrada.`,
+      );
+    }
+    if (vet.userId !== userId) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar esta veterinaria.',
+      );
+    }
+
+    const currentPhotoIds = new Set(vet.images.map((img) => img.id));
+    const inputPhotoIds = new Set(photoIdsInOrder);
+
+    if (currentPhotoIds.size !== inputPhotoIds.size) {
+      throw new BadRequestException(
+        `La cantidad de IDs (${inputPhotoIds.size}) no coincide con las fotos activas (${currentPhotoIds.size}).`,
+      );
+    }
+
+    for (const id of inputPhotoIds) {
+      if (!currentPhotoIds.has(id)) {
+        throw new BadRequestException(
+          `El ID de foto ${id} no pertenece a esta veterinaria.`,
+        );
+      }
+    }
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.vetImage.updateMany({
+          where: { vetId: vetId },
+          data: { isLogo: false },
+        });
+
+        const updatePromises = photoIdsInOrder.map((photoId, index) =>
+          tx.vetImage.update({
+            where: { id: photoId },
+            data: {
+              order: index,
+              isLogo: index === 0,
+            },
+          }),
+        );
+        await Promise.all(updatePromises);
+      });
+
+      return this.prisma.vetImage.findMany({
+        where: { vetId: vetId },
+        orderBy: { order: 'asc' },
+      });
+    } catch (error) {
+      console.error('Error al reordenar las fotos:', error);
+      throw new InternalServerErrorException('Error al reordenar las fotos.');
+    }
+  }
+
+  /**
+   * Reemplaza todos los servicios de una veterinaria.
+   * Solo el dueño puede hacerlo.
+   */
+  async updateVetServices(userId: number, vetId: number, serviceIds: number[]) {
+    await this.checkVetOwnership(userId, vetId);
+
+    const servicesData = serviceIds.map((serviceId) => ({
+      vetId: vetId,
+      serviceId: serviceId,
+    }));
+
+    try {
+      await this.prisma.$transaction([
+        this.prisma.vetService.deleteMany({
+          where: { vetId: vetId },
+        }),
+        this.prisma.vetService.createMany({
+          data: servicesData,
+        }),
+      ]);
+
+      return { message: 'Servicios actualizados correctamente.' };
+    } catch (error) {
+      console.error('Error al actualizar servicios:', error);
+      throw new InternalServerErrorException('Error al actualizar servicios.');
+    }
+  }
+
+  /**
+   * Reemplaza todos los horarios de una veterinaria.
+   * Solo el dueño puede hacerlo.
+   */
+  async updateVetHours(
+    userId: number,
+    vetId: number,
+    openingTimes: CreateOpeningTimeDto[],
+  ) {
+    await this.checkVetOwnership(userId, vetId);
+
+    const openingTimesData = openingTimes.map((time) => ({
+      vetId: vetId,
+      dayOfWeekId: time.dayOfWeekId,
+      startTime: time.startTime,
+      endTime: time.endTime,
+    }));
+
+    try {
+      await this.prisma.$transaction([
+        this.prisma.vetOpeningTime.deleteMany({
+          where: { vetId: vetId },
+        }),
+        this.prisma.vetOpeningTime.createMany({
+          data: openingTimesData,
+        }),
+      ]);
+
+      return { message: 'Horarios actualizados correctamente.' };
+    } catch (error) {
+      console.error('Error al actualizar horarios:', error);
+      throw new InternalServerErrorException('Error al actualizar horarios.');
     }
   }
 }

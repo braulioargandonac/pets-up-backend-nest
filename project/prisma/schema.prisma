@@ -518,6 +518,7 @@ model Vet {
   address      String
   communeId    Int?
   isVerified   Boolean  @default(false)
+  isActive   Boolean  @default(true)
   howToGoCount Int
   visitsCount  Int
   description  String?

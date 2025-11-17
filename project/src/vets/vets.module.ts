@@ -4,6 +4,6 @@ import { VetsService } from './vets.service';
 
 @Module({
   controllers: [VetsController],
-  providers: [VetsService]
+  providers: [VetsService],
 })
 export class VetsModule {}
