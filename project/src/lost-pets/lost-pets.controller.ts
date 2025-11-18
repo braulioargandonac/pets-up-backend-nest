@@ -25,7 +25,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CreateSightingDto } from './dto/create-sighting.dto';
-import { User } from 'generated/prisma';
+import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 
 type AuthenticatedUser = Omit<User, 'password'>;

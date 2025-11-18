@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CommunityPetTask } from '@prisma/client';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()

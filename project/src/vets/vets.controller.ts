@@ -21,7 +21,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { VetsService } from './vets.service';
-import { Role } from 'generated/prisma';
+import { Role } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role as RoleEnum } from 'src/common/enums/role.enum';

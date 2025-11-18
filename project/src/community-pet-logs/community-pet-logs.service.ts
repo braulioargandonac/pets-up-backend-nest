@@ -9,7 +9,7 @@ import { CreateLogDto } from './dto/create-log.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CommunityPetLog } from '@prisma/client';
 import { UpdateLogDto } from './dto/update-log.dto';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CommunityPetLogsService {
