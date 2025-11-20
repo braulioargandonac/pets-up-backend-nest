@@ -297,8 +297,7 @@ model LostPet {
   petId        Int       @unique
   reportedById Int
   communeId    Int
-  latitude     Float
-  longitude    Float
+  location     Unsupported("geography(Point, 4326)")
   foundAt      DateTime?
   lostAt       DateTime
   description  String?
@@ -314,7 +313,7 @@ model LostPet {
 
   @@index([isResolved])
   @@index([communeId, isResolved])
-  @@index([latitude, longitude])
+  @@index([location], type: Gist)
   @@index([lostAt])
 }
 
@@ -323,8 +322,7 @@ model LostPetSighting {
   lostPetId    Int
   sightedById  Int
   description  String?
-  latitude     Float
-  longitude    Float
+  location     Unsupported("geography(Point, 4326)")
   sightingDate DateTime @default(now())
   imageUrl     String
 
@@ -332,7 +330,7 @@ model LostPetSighting {
   sightedBy User    @relation(fields: [sightedById], references: [id])
 
   @@index([sightingDate])
-  @@index([latitude, longitude])
+  @@index([location], type: Gist)
 }
 
 model Report {
@@ -393,8 +391,7 @@ model CommunityPet {
   careInstructions    String?
   communeId           Int
   address             String
-  latitude            Float
-  longitude           Float
+  location            Unsupported("geography(Point, 4326)")
   specieId            Int
   breedId             Int?
   createdById         Int
@@ -412,7 +409,7 @@ model CommunityPet {
   reward    CommunityPetReward[]
   report    Report[]
 
-  @@index([latitude, longitude])
+  @@index([location], type: Gist)
 }
 
 model CommunityPetImage {

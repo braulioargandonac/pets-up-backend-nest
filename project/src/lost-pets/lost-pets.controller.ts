@@ -19,7 +19,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { LostPetsService } from './lost-pets.service';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { GetLostPetsDto } from './dto/get-lost-pets.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -27,6 +27,7 @@ import { extname } from 'path';
 import { CreateSightingDto } from './dto/create-sighting.dto';
 import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 interface AuthenticatedRequest extends Request {
@@ -41,12 +42,25 @@ export class LostPetsController {
   ) {}
 
   /**
-   * Endpoint público para listar mascotas perdidas (paginado).
-   * GET /api/v1/lost-pets?page=1&limit=10
+   * Endpoint público híbrido:
+   * 1. Si recibe lat/lon -> Busca por cercanía (para el mapa).
+   * 2. Si no -> Devuelve lista paginada estándar (para el feed).
+   * GET /api/v1/lost-pets?lat=...&lon=... OR ?page=1
    */
   @Get()
-  findAll(@Query() paginationQuery: PaginationQueryDto) {
-    return this.lostPetsService.findAll(paginationQuery);
+  findAll(@Query() query: GetLostPetsDto) {
+    if (query.lat && query.lon) {
+      return this.lostPetsService.findNearby({
+        lat: query.lat,
+        lon: query.lon,
+        radiusKm: query.radiusKm,
+      });
+    }
+
+    return this.lostPetsService.findAll({
+      page: query.page,
+      limit: query.limit,
+    });
   }
 
   /**
@@ -101,6 +115,9 @@ export class LostPetsController {
 
     const sightedById = req.user.id;
     const appUrl = this.configService.get<string>('APP_URL');
+    if (!appUrl) {
+      throw new InternalServerErrorException('APP_URL no configurada');
+    }
     const imageUrl = `${appUrl}/${file.path.replace('public/', '')}`;
 
     return this.lostPetsService.reportSighting(
