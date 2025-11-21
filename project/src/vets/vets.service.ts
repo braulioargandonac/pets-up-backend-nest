@@ -50,16 +50,18 @@ export class VetsService {
     const radiusInMeters = radiusKm * 1000;
     const userLocation = Prisma.sql`ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)`;
 
+    const today = new Date().getDay();
+    const dayOfWeekId = today === 0 ? 7 : today;
+    const now = new Date();
+    now.setHours(now.getUTCHours() - 3);
+    const currentTime = now.toTimeString().substr(0, 5);
+
     let openNowJoin = Prisma.empty;
     let openNowWhere = Prisma.empty;
 
     if (openNow) {
-      const today = new Date().getDay();
-      const dayOfWeekId = today === 0 ? 7 : today;
-
       const now = new Date();
       now.setHours(now.getUTCHours() - 3);
-      const currentTime = now.toTimeString().substr(0, 5);
 
       openNowJoin = Prisma.sql`
         INNER JOIN "VetOpeningTime" AS "horario"
@@ -91,16 +93,21 @@ export class VetsService {
     try {
       const vets = await this.prisma.$queryRaw`
         SELECT
-          "v"."id",
-          "v"."name",
-          "v"."address",
-          "v"."isVerified",
-          "v"."googleMapsUrl",
-          
+          "v"."id", "v"."name", "v"."address", "v"."isVerified", "v"."googleMapsUrl",
           ST_X("v"."location"::geometry) AS "longitude",
           ST_Y("v"."location"::geometry) AS "latitude",
-          
-          ST_Distance("v"."location", ${userLocation}) AS "distanceInMeters"
+          ST_Distance("v"."location", ${userLocation}) AS "distanceInMeters",
+          (
+            SELECT COUNT(*) > 0 
+            FROM "VetOpeningTime" as "vot"
+            WHERE "vot"."vetId" = "v"."id"
+              AND "vot"."dayOfWeekId" = ${dayOfWeekId}
+              AND (
+                ("vot"."startTime" <= "vot"."endTime" AND "vot"."startTime" <= ${currentTime} AND "vot"."endTime" >= ${currentTime})
+                OR
+                ("vot"."startTime" > "vot"."endTime" AND ("vot"."startTime" <= ${currentTime} OR "vot"."endTime" >= ${currentTime}))
+              )
+          ) as "isOpen"
           
         FROM "Vet" AS "v"
         
@@ -113,6 +120,7 @@ export class VetsService {
             ${userLocation},
             ${radiusInMeters}
           )
+          AND "v"."isVerified" = true
           AND "v"."isActive" = true
 
           ${serviceWhere}
