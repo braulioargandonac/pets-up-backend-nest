@@ -78,4 +78,27 @@ export class UsersService {
     const { password: _, ...result } = user;
     return result;
   }
+
+  /**
+   * Obtiene todas las mascotas de un usuario.
+   */
+  async getMyPets(userId: number) {
+    return this.prisma.pet.findMany({
+      where: {
+        ownerId: userId,
+        isActive: true,
+      },
+      include: {
+        images: {
+          take: 1,
+          orderBy: { order: 'asc' },
+          where: { isActive: true },
+        },
+        status: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }
