@@ -50,11 +50,18 @@ export class VetsService {
     const radiusInMeters = radiusKm * 1000;
     const userLocation = Prisma.sql`ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)`;
 
-    const today = new Date().getDay();
-    const dayOfWeekId = today === 0 ? 7 : today;
     const now = new Date();
-    now.setHours(now.getUTCHours() - 3);
-    const currentTime = now.toTimeString().substr(0, 5);
+    const chileDateString = now.toLocaleString('en-US', {
+      timeZone: 'America/Santiago',
+    });
+    const chileDate = new Date(chileDateString);
+
+    const dayIndex = chileDate.getDay();
+    const dayOfWeekId = dayIndex === 0 ? 7 : dayIndex;
+
+    const hours = chileDate.getHours().toString().padStart(2, '0');
+    const minutes = chileDate.getMinutes().toString().padStart(2, '0');
+    const currentTime = `${hours}:${minutes}`;
 
     let openNowJoin = Prisma.empty;
     let openNowWhere = Prisma.empty;
