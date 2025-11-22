@@ -41,6 +41,10 @@ export class CreatePetDto {
   @IsNotEmpty()
   communeId: number;
 
+  @IsString()
+  @IsOptional()
+  chipNumber?: string;
+
   @IsInt()
   @IsOptional()
   sizeId?: number;

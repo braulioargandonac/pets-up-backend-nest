@@ -41,6 +41,10 @@ export class UpdatePetDto {
   @IsOptional()
   communeId?: number;
 
+  @IsString()
+  @IsOptional()
+  chipNumber?: string;
+
   @IsInt()
   @IsOptional()
   sizeId?: number;

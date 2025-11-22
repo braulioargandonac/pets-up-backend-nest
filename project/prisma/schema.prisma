@@ -1,12 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [postgis]
 }
 
@@ -193,6 +193,7 @@ model Pet {
   breedId             Int?
   hairTypeId          Int?
   communeId           Int?
+  chipNumber          String?
   isActive            Boolean   @default(true)
   isPetFriendly       Boolean   @default(true)
   isKidFriendly       Boolean   @default(true)
@@ -293,18 +294,18 @@ model PetHairType {
 }
 
 model LostPet {
-  id           Int       @id @default(autoincrement())
-  petId        Int       @unique
+  id           Int                                   @id @default(autoincrement())
+  petId        Int                                   @unique
   reportedById Int
   communeId    Int
   location     Unsupported("geography(Point, 4326)")
   foundAt      DateTime?
   lostAt       DateTime
   description  String?
-  reportCount  Int       @default(0)
-  visitsCount  Int       @default(0)
-  isResolved   Boolean   @default(false)
-  createdAt    DateTime  @default(now())
+  reportCount  Int                                   @default(0)
+  visitsCount  Int                                   @default(0)
+  isResolved   Boolean                               @default(false)
+  createdAt    DateTime                              @default(now())
 
   pet        Pet               @relation(fields: [petId], references: [id])
   reportedBy User              @relation(fields: [reportedById], references: [id])
@@ -318,12 +319,12 @@ model LostPet {
 }
 
 model LostPetSighting {
-  id           Int      @id @default(autoincrement())
+  id           Int                                   @id @default(autoincrement())
   lostPetId    Int
   sightedById  Int
   description  String?
   location     Unsupported("geography(Point, 4326)")
-  sightingDate DateTime @default(now())
+  sightingDate DateTime                              @default(now())
   imageUrl     String
 
   lostPet   LostPet @relation(fields: [lostPetId], references: [id])
@@ -382,7 +383,7 @@ enum Temperament {
 }
 
 model CommunityPet {
-  id                  Int           @id @default(autoincrement())
+  id                  Int                                   @id @default(autoincrement())
   name                String
   description         String?
   color               String?
@@ -395,8 +396,8 @@ model CommunityPet {
   specieId            Int
   breedId             Int?
   createdById         Int
-  isActive            Boolean       @default(true)
-  createdAt           DateTime      @default(now())
+  isActive            Boolean                               @default(true)
+  createdAt           DateTime                              @default(now())
 
   commune   Commune              @relation(fields: [communeId], references: [id])
   specie    PetSpecie            @relation(fields: [specieId], references: [id])
@@ -515,13 +516,13 @@ model Vet {
   address      String
   communeId    Int?
   isVerified   Boolean  @default(false)
-  isActive   Boolean  @default(true)
+  isActive     Boolean  @default(true)
   howToGoCount Int
   visitsCount  Int
   description  String?
   createdAt    DateTime @default(now())
 
-  location Unsupported("geography(Point, 4326)")?
+  location      Unsupported("geography(Point, 4326)")?
   googleMapsUrl String?
 
   commune         Commune?         @relation(fields: [communeId], references: [id])
