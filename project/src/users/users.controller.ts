@@ -4,6 +4,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Body,
+  Patch,
   Param,
   ParseIntPipe,
   Req,
@@ -16,6 +18,7 @@ import { User } from '@prisma/client';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Role as RoleEnum } from 'src/common/enums/role.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 type AuthenticatedUser = Omit<User, 'password'>;
 interface AuthenticatedRequest extends Request {
@@ -42,6 +45,19 @@ export class UsersController {
   @UseGuards(AuthGuard('jwt'))
   getMyPets(@Req() req: AuthenticatedRequest) {
     return this.usersService.getMyPets(req.user.id);
+  }
+
+  /**
+   * Endpoint para que el usuario edite su propio perfil.
+   * PATCH /users/me
+   */
+  @Patch('me')
+  @UseGuards(AuthGuard('jwt'))
+  updateProfile(
+    @Req() req: AuthenticatedRequest,
+    @Body() updateDto: UpdateUserDto,
+  ) {
+    return this.usersService.update(req.user.id, updateDto);
   }
 
   /**

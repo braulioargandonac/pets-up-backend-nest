@@ -2,11 +2,13 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 const _userWithRolesInclude = Prisma.validator<Prisma.UserDefaultArgs>()({
   include: {
@@ -202,6 +204,43 @@ export class UsersService {
     } catch (error) {
       console.error('Error eliminando cuenta:', error);
       throw new InternalServerErrorException('No se pudo eliminar la cuenta.');
+    }
+  }
+
+  /**
+   * Actualiza los datos de un usuario.
+   */
+  async update(id: number, data: UpdateUserDto): Promise<PublicUserWithRoles> {
+    const { communeId, ...primitiveData } = data;
+
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: {
+          ...primitiveData,
+          ...(communeId && {
+            commune: { connect: { id: communeId } },
+          }),
+        },
+        include: {
+          userRoles: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...result } = updatedUser;
+      return result;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Usuario o Comuna no encontrados.');
+        }
+      }
+      throw new InternalServerErrorException('Error al actualizar el perfil.');
     }
   }
 }
