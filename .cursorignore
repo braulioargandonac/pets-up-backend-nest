@@ -1,0 +1,14 @@
+project/node_modules
+project/dist
+project/public/uploads/*
+project/package-lock.json
+
+.env
+.env.development
+.env.test
+.env.production
+
+.temp
+.tmp
+
+.gitignore

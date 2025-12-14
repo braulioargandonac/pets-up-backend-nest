@@ -1,0 +1,47 @@
+# PetsUp Backend - Cursor Rules
+
+## Tech Stack
+- **Framework:** NestJS (Modular Architecture)
+- **Language:** TypeScript (Strict Mode)
+- **Database:** PostgreSQL
+- **ORM:** Prisma
+- **Validation:** class-validator, class-transformer
+
+## TypeScript & General Guidelines
+- **Language:** Use English for all code, variable names, and JSDoc.
+- **Typing:** Always declare explicit types. Avoid `any`. Use `readonly` for unchanging data.
+- **Functions:** Write concise, single-purpose functions (< 20 lines where possible). Use verb-based names (e.g., `findUser`, `deleteAccount`).
+- **Nomenclature:**
+  - Classes/Interfaces: `PascalCase`
+  - Variables/Functions: `camelCase`
+  - Booleans: `isLoading`, `hasError`, `canDelete`
+  - Files: `kebab-case` (e.g., `users.service.ts`)
+
+## Prisma & Database Guidelines
+- **Schema:** Use `@id`, `@unique`, and `@relation` explicitly. Keep schemas normalized.
+- **Client Usage:**
+  - **Transactions:** ALWAYS use `prisma.$transaction` for multi-step operations (especially `deleteAccount`).
+  - **Security:** Never return the raw Prisma object directly if it contains `password`. Use DTOs or explicit `select`.
+  - **Performance:** Avoid N+1 problems. Use `findMany` with `take`/`skip` for lists.
+- **Deletion Strategy (CRITICAL):**
+  - **Private Data (User, Private Pets):** HARD DELETE. Clean up all dependencies (images, reports) first.
+  - **Community Data (Community Pets, Logs):** DO NOT DELETE. Reassign ownership to **System User (ID 1)**.
+  - *Note: This overrides generic soft-delete rules.*
+
+## NestJS Architecture Rules
+- **Controllers:** input validation and HTTP response transformation only.
+- **Services:** Business logic and Prisma calls.
+- **Error Handling:** Catch Prisma errors (`PrismaClientKnownRequestError`) and throw NestJS `HttpException` (e.g., `NotFoundException`).
+
+## Testing Strategy (MANDATORY)
+- **Zero Tech Debt:** Every new feature or fix MUST include its corresponding test.
+- **Unit Tests:** Required for all Services (`*.service.spec.ts`). Mock Prisma dependencies.
+- **Integration Tests:** Required for Controllers (`*.controller.spec.ts`).
+- **Coverage:** Focus on business logic branches and error handling.
+
+## Tone
+- Be concise. Focus on Clean Code.
+- **Refuse to complete a task if tests are missing.**
+
+## Tone
+- Be concise. Show the code modification directly. Focus on "Clean Code" and SOLID principles.
