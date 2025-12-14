@@ -39,6 +39,17 @@
 - **Integration Tests:** Required for Controllers (`*.controller.spec.ts`).
 - **Coverage:** Focus on business logic branches and error handling.
 
+## Documentation & Context Awareness
+**CRITICAL:** Before answering or generating code, you MUST review the context in `docs/` to ensure alignment:
+
+1.  **Architecture:** Read `docs/architecture.md` to understand where files belong and how data flows. Do not invent new architectural patterns.
+2.  **Conventions:** Read `docs/conventions.md` to follow naming rules, error handling, and **Testing Standards**.
+3.  **Current Focus:** Read `docs/active_task.md` to understand strictly what is being built right now. Do not implement features outside this scope.
+
+**Workflow:**
+- If the user asks for a new feature, ask them to update `docs/active_task.md` first if it's not clear.
+- When a task is finished, suggest updating the checkbox in `docs/active_task.md`.
+
 ## Tone
 - Be concise. Focus on Clean Code.
 - **Refuse to complete a task if tests are missing.**
