@@ -1,16 +1,16 @@
-# Active Task: [NOMBRE DE LA TAREA]
+# Active Task: [TASK NAME]
 
-## 1. Contexto
-## 2. Requerimientos
-- [ ] Requerimiento Funcional 1
-- [ ] Requerimiento Funcional 2
+## 1. Context
+## 2. Requirements
+- [ ] Functional Requirement 1
+- [ ] Functional Requirement 2
 
-## 3. Plan Técnico
+## 3. Technical Plan
 1.  **Backend:** `src/module/file.ts`
 2.  **Frontend:** `components/screen/file.tsx`
-3.  **Tests:** Crear/Actualizar `file.spec.ts` / `file.test.tsx`
+3.  **Tests:** Create/Update `file.spec.ts` / `file.test.tsx`
 
-## 4. Verificación y Calidad
-- [ ] **Tests Unitarios:** Pasan en verde (`npm run test`).
-- [ ] **Cobertura:** Se cubren los casos de éxito y error.
-- [ ] Criterio de aceptación de negocio cumplido.
+## 4. Verification and Quality
+- [ ] **Unit Tests:** Pass (`npm run test`).
+- [ ] **Coverage:** Success and error cases are covered.
+- [ ] Business acceptance criteria met.
